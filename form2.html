@@ -268,6 +268,7 @@ document.getElementById("hidden_iframe2").addEventListener("load", function() {
   document.getElementById("successBanner").style.display = "block";
   document.getElementById("errorBanner").style.display   = "none";
   resetForm();
+  setTimeout(() => { window.close(); }, 2500);
 });
 
 function submitForm() {
@@ -304,6 +305,7 @@ function submitForm() {
     btn.innerHTML = "שלח דיווח";
     document.getElementById("successBanner").style.display = "block";
     resetForm();
+    setTimeout(() => { window.close(); }, 2500);
   }, 5000);
 }
 </script>
