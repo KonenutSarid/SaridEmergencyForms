@@ -327,6 +327,22 @@ if (!savedHandler) {
 }
 
 // FIX: always fetch ref number from server
+// JSONP helper
+function jsonp(url, callback) {
+  const name = "cb_" + Math.random().toString(36).slice(2);
+  window[name] = function(data) {
+    delete window[name];
+    const s = document.getElementById("s_"+name);
+    if (s) s.remove();
+    callback(null, data);
+  };
+  const script = document.createElement("script");
+  script.id = "s_" + name;
+  script.onerror = function() { delete window[name]; script.remove(); callback(new Error("failed")); };
+  script.src = url + "&callback=" + name;
+  document.head.appendChild(script);
+}
+
 function initRefNum() {
   jsonp(SCRIPT_URL + "?action=maxref", function(err, data) {
     if (!err && data && typeof data.maxRef !== "undefined") {
