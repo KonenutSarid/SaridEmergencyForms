@@ -558,7 +558,7 @@ document.getElementById("hidden_iframe3").addEventListener("load", function() {
   document.getElementById("successBanner").innerHTML = msgs[mode] + "<br><span style='font-size:14px;font-weight:400'>הנתונים עודכנו בגיליון.</span>";
   document.getElementById("successBanner").style.display = "block";
   resetAfterSubmit();
-  setTimeout(() => { window.location.href = 'index.html'; }, 2500);
+  setTimeout(() => { if (window.opener || window.history.length <= 1) { window.close(); } else { window.location.href = 'index.html'; } }, 2500);
 });
 
 function submitForm() {
@@ -617,7 +617,7 @@ function submitForm() {
     document.getElementById("successBanner").innerHTML = "✅ נשלח בהצלחה!";
     document.getElementById("successBanner").style.display = "block";
     resetAfterSubmit();
-    setTimeout(() => { window.location.href = 'index.html'; }, 2500);
+    setTimeout(() => { if (window.opener || window.history.length <= 1) { window.close(); } else { window.location.href = 'index.html'; } }, 2500);
   }, 5000);
 }
 </script>
