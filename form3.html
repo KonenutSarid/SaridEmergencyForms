@@ -316,10 +316,21 @@ let currentRowIndex = -1;
 let currentHadReleaseTime = false;
 
 // Always fetch max ref from server on load
+// FIX: init handler name first, then ref num
+const savedHandler = localStorage.getItem("masarHandler");
+if (!savedHandler) {
+  document.getElementById("setupBanner").style.display = "block";
+  document.getElementById("formFields").style.display  = "none";
+} else {
+  document.getElementById("handlerDisplay").textContent = savedHandler;
+  document.getElementById("formFields").style.display  = "block";
+}
+
+// FIX: always fetch ref number from server
 function initRefNum() {
   jsonp(SCRIPT_URL + "?action=maxref", function(err, data) {
-    if (!err && data && data.maxRef !== undefined) {
-      refNum = data.maxRef + 1;
+    if (!err && data && typeof data.maxRef !== "undefined") {
+      refNum = parseInt(data.maxRef) + 1;
     } else {
       refNum = parseInt(localStorage.getItem("masarRefNum") || "1");
     }
@@ -328,13 +339,6 @@ function initRefNum() {
   });
 }
 initRefNum();
-
-const savedHandler = localStorage.getItem("masarHandler");
-if (!savedHandler) {
-  document.getElementById("setupBanner").style.display = "block";
-} else {
-  document.getElementById("handlerDisplay").textContent = savedHandler;
-}
 
 function saveHandlerName() {
   const name = document.getElementById("setupName").value.trim();
@@ -535,7 +539,7 @@ document.getElementById("hidden_iframe3").addEventListener("load", function() {
   document.getElementById("successBanner").innerHTML = msgs[mode] + "<br><span style='font-size:14px;font-weight:400'>הנתונים עודכנו בגיליון.</span>";
   document.getElementById("successBanner").style.display = "block";
   resetAfterSubmit();
-  setTimeout(() => { window.close(); }, 2500);
+  setTimeout(() => { window.location.href = 'index.html'; }, 2500);
 });
 
 function submitForm() {
@@ -594,7 +598,7 @@ function submitForm() {
     document.getElementById("successBanner").innerHTML = "✅ נשלח בהצלחה!";
     document.getElementById("successBanner").style.display = "block";
     resetAfterSubmit();
-    setTimeout(() => { window.close(); }, 2500);
+    setTimeout(() => { window.location.href = 'index.html'; }, 2500);
   }, 5000);
 }
 </script>
