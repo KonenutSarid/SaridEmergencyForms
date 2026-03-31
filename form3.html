@@ -285,7 +285,7 @@
 </div>
 
 <iframe name="hidden_iframe3" id="hidden_iframe3" style="display:none"></iframe>
-<form id="hidden_form3" method="POST" action="https://script.google.com/macros/s/AKfycbxxuqfuUM9ejRR090jJIdpK9NOagQSU7IKDmtGogoqBkdTL0rxnM2vTpVkUFLIB-1CEtw/exec" target="hidden_iframe3" style="display:none">
+<form id="hidden_form3" method="POST" action="https://script.google.com/macros/s/AKfycbzTehF3cSfTNfabn4UzCqXDA4VsCsgBdqNVC7ggt5xTVZIDLr3Bnf0hgB5pRCF8omI9EA/exec" target="hidden_iframe3" style="display:none">
   <input type="hidden" name="mode"           id="f_mode">
   <input type="hidden" name="rowIndex"       id="f_rowIndex">
   <input type="hidden" name="timestamp"      id="f_timestamp">
@@ -302,7 +302,7 @@
 </form>
 
 <script>
-const SCRIPT_URL     = "https://script.google.com/macros/s/AKfycbxxuqfuUM9ejRR090jJIdpK9NOagQSU7IKDmtGogoqBkdTL0rxnM2vTpVkUFLIB-1CEtw/exec";
+const SCRIPT_URL     = "https://script.google.com/macros/s/AKfycbzTehF3cSfTNfabn4UzCqXDA4VsCsgBdqNVC7ggt5xTVZIDLr3Bnf0hgB5pRCF8omI9EA/exec";
 const STATUS_LABELS  = { routine:"שגרה", followup:"המשך מעקב", treatment:"טיפול מקצועי" };
 const STATUS_CLASSES = { routine:"sel-routine", followup:"sel-followup", treatment:"sel-treatment" };
 
@@ -315,8 +315,19 @@ let submitting      = false;
 let currentRowIndex = -1;
 let currentHadReleaseTime = false;
 
-if (localStorage.getItem("masarRefNum")) refNum = parseInt(localStorage.getItem("masarRefNum"));
-document.getElementById("refNumDisplay").textContent = refNum;
+// Always fetch max ref from server on load
+function initRefNum() {
+  jsonp(SCRIPT_URL + "?action=maxref", function(err, data) {
+    if (!err && data && data.maxRef !== undefined) {
+      refNum = data.maxRef + 1;
+    } else {
+      refNum = parseInt(localStorage.getItem("masarRefNum") || "1");
+    }
+    localStorage.setItem("masarRefNum", refNum);
+    document.getElementById("refNumDisplay").textContent = refNum;
+  });
+}
+initRefNum();
 
 const savedHandler = localStorage.getItem("masarHandler");
 if (!savedHandler) {
@@ -495,8 +506,15 @@ function clearForm() {
 function resetAfterSubmit() {
   clearForm();
   if (mode==="new") {
-    refNum++; localStorage.setItem("masarRefNum", refNum);
-    document.getElementById("refNumDisplay").textContent = refNum;
+    jsonp(SCRIPT_URL + "?action=maxref", function(err, data) {
+      if (!err && data && data.maxRef !== undefined) {
+        refNum = data.maxRef + 1;
+      } else {
+        refNum++;
+      }
+      localStorage.setItem("masarRefNum", refNum);
+      document.getElementById("refNumDisplay").textContent = refNum;
+    });
   }
   currentRowIndex = -1;
   if (mode !== "new") document.getElementById("formFields").style.display = "none";
