@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<title>ניתור נתוני ארוע – קיבוץ שריד</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { direction: rtl; font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(145deg, #0d3d3d 0%, #0a2e3d 50%, #0d3347 100%); min-height: 100vh; padding: 1rem; }
+
+  /* PIN screen */
+  .pin-screen {
+    position: fixed; inset: 0; background: linear-gradient(145deg, #0d3d3d 0%, #0a2e3d 50%, #0d3347 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100; padding: 2rem;
+  }
+  .pin-screen img { width: 120px; margin-bottom: 1.5rem; }
+  .pin-screen h2 { color: white; font-size: 20px; font-weight: 700; margin-bottom: 0.5rem; }
+  .pin-screen p  { color: rgba(255,255,255,0.55); font-size: 14px; margin-bottom: 1.5rem; }
+  .pin-dots { display: flex; gap: 12px; margin-bottom: 1.5rem; }
+  .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); background: transparent; transition: all 0.2s; }
+  .pin-dot.filled { background: white; border-color: white; }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 240px; }
+  .pin-btn {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; color: white; font-size: 22px; font-weight: 600;
+    padding: 16px; cursor: pointer; font-family: inherit; text-align: center;
+    transition: all 0.15s;
+  }
+  .pin-btn:active { background: rgba(255,255,255,0.25); transform: scale(0.95); }
+  .pin-error { color: #f87171; font-size: 14px; margin-top: 0.75rem; display: none; }
+
+  /* Dashboard */
+  .dashboard { display: none; max-width: 700px; margin: 0 auto; }
+  .dash-header { text-align: center; margin-bottom: 1rem; }
+  .dash-header img { width: 90px; margin-bottom: 0.5rem; }
+  .dash-header h1 { font-size: 18px; font-weight: 800; color: white; margin-bottom: 2px; }
+  .dash-header p  { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+  .refresh-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .refresh-btn {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px; color: white; font-size: 13px; font-weight: 600;
+    padding: 8px 16px; cursor: pointer; font-family: inherit;
+  }
+  .refresh-btn:active { background: rgba(255,255,255,0.2); }
+  .refresh-info { font-size: 12px; color: rgba(255,255,255,0.45); }
+  .countdown { color: rgba(255,255,255,0.7); font-weight: 600; }
+
+  .section { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 1rem; margin-bottom: 1rem; }
+  .section-title { font-size: 14px; font-weight: 700; color: white; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 6px; }
+  .section-title .icon { font-size: 18px; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 0.85rem; }
+  .stat-box { background: rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .stat-box .stat-num { font-size: 26px; font-weight: 800; color: white; line-height: 1; }
+  .stat-box .stat-lbl { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+  .stat-box.green .stat-num { color: #86efac; }
+  .stat-box.red   .stat-num { color: #fca5a5; }
+  .stat-box.amber .stat-num { color: #fcd34d; }
+  .stat-box.blue  .stat-num { color: #93c5fd; }
+  .stat-box.purple.stat-num { color: #c4b5fd; }
+
+  .chart-wrap { position: relative; height: 180px; }
+  .chart-wrap-sm { position: relative; height: 160px; }
+
+  .hosp-list { margin-top: 8px; }
+  .hosp-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; background: rgba(255,255,255,0.06); }
+  .hosp-name { font-size: 14px; color: white; font-weight: 500; }
+  .hosp-count { font-size: 16px; font-weight: 800; color: #86efac; }
+  .no-data { text-align: center; color: rgba(255,255,255,0.4); font-size: 13px; padding: 1rem 0; }
+
+  .loading-overlay { text-align: center; color: rgba(255,255,255,0.5); font-size: 14px; padding: 2rem 0; }
+  .spinner-sm { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-left: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .back-btn {
+    display: block; text-align: center; color: rgba(255,255,255,0.5);
+    font-size: 13px; margin-top: 1rem; text-decoration: none; padding: 0.5rem;
+  }
+
+  @media (max-width: 400px) {
+    .stat-row { grid-template-columns: repeat(3, 1fr); }
+    .stat-box .stat-num { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- PIN Screen -->
+<div class="pin-screen" id="pinScreen">
+  <img src="Sarid100Logo.png" alt="שריד">
+  <h2>ניתור נתוני ארוע</h2>
+  <p>הכנס קוד גישה</p>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn" onclick="pinPress('clear')" style="font-size:14px">מחק</button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn" onclick="pinPress('ok')" style="font-size:14px; background:rgba(14,116,144,0.4)">✓</button>
+  </div>
+  <div class="pin-error" id="pinError">קוד שגוי. נסה שוב.</div>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+
+  <div class="dash-header">
+    <img src="Sarid100Logo.png" alt="שריד">
+    <h1>ניתור נתוני ארוע – קיבוץ שריד</h1>
+    <p id="lastUpdate">טוען נתונים...</p>
+  </div>
+
+  <div class="refresh-bar">
+    <button class="refresh-btn" onclick="loadAll()">🔄 רענן עכשיו</button>
+    <span class="refresh-info">רענון אוטומטי בעוד <span class="countdown" id="countdown">60</span> שניות</span>
+  </div>
+
+  <!-- Form 1 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🏠</span> דיווח מצב דירה</div>
+    <div id="f1content"><div class="loading-overlay">טוען... <span class="spinner-sm"></span></div></div>
+  </div>
+
+  <!-- Form 2 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🚑</span> מיפוי פצועים</div>
+    <div id="f2content"><div class="loading-overlay">טוען... <span class="spinner-sm"></span></div></div>
+  </div>
+
+  <!-- Form 3 -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📋</span> מעקב מס"ר</div>
+    <div id="f3content"><div class="loading-overlay">טוען... <span class="spinner-sm"></span></div></div>
+  </div>
+
+  <a class="back-btn" href="index.html">← חזור לדף הבית</a>
+  <div style="height:1rem"></div>
+</div>
+
+<script>
+const PIN  = "8594";
+const URLS = {
+  f1: "https://script.google.com/macros/s/AKfycbxGLxx0rBvvqJI3TWVKA-4auM4DO_IlGsYPa4lSjGeKR4n_wjsEUBASnrRf2CZrXWT3/exec",
+  f2: "https://script.google.com/macros/s/AKfycbzkT529l2EGpSzh6MvmwNiwixZYbVhu3dnxcFyelYX28otpdi5wXdVURJxio_J4tosK/exec",
+  f3: "https://script.google.com/macros/s/AKfycbyq1CqNyaQVceAl-dFg6R0hXwAnBeS7r09emJ0tT39qf_fcN4s9QklRUA9T8MdWVE2ViA/exec"
+};
+
+let pinVal = "";
+let countdownVal = 60;
+let countdownTimer, refreshTimer;
+let charts = {};
+
+// PIN
+function pinPress(k) {
+  if (k === "clear") { pinVal = pinVal.slice(0,-1); }
+  else if (k === "ok") { checkPin(); return; }
+  else if (pinVal.length < 4) { pinVal += k; }
+  updateDots();
+  if (pinVal.length === 4) setTimeout(checkPin, 150);
+}
+
+function updateDots() {
+  for (var i = 0; i < 4; i++) {
+    document.getElementById("d"+i).className = "pin-dot" + (i < pinVal.length ? " filled" : "");
+  }
+}
+
+function checkPin() {
+  if (pinVal === PIN) {
+    document.getElementById("pinScreen").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    loadAll();
+    startCountdown();
+  } else {
+    document.getElementById("pinError").style.display = "block";
+    pinVal = ""; updateDots();
+    setTimeout(() => { document.getElementById("pinError").style.display = "none"; }, 2000);
+  }
+}
+
+// Countdown
+function startCountdown() {
+  clearInterval(countdownTimer);
+  clearTimeout(refreshTimer);
+  countdownVal = 60;
+  document.getElementById("countdown").textContent = countdownVal;
+  countdownTimer = setInterval(() => {
+    countdownVal--;
+    document.getElementById("countdown").textContent = countdownVal;
+    if (countdownVal <= 0) { clearInterval(countdownTimer); loadAll(); startCountdown(); }
+  }, 1000);
+}
+
+// JSONP helper
+function jsonp(url, callback) {
+  const name = "cb_" + Math.random().toString(36).slice(2);
+  window[name] = function(data) {
+    delete window[name];
+    document.getElementById("s_" + name) && document.getElementById("s_" + name).remove();
+    callback(null, data);
+  };
+  const script = document.createElement("script");
+  script.id = "s_" + name;
+  script.onerror = function() {
+    delete window[name];
+    script.remove();
+    callback(new Error("failed"));
+  };
+  script.src = url + "&callback=" + name;
+  document.head.appendChild(script);
+}
+
+// Load all
+function loadAll() {
+  document.getElementById("lastUpdate").textContent = "מעדכן...";
+  let results = {};
+  let done = 0;
+  const total = 3;
+
+  function check() {
+    done++;
+    if (done === total) {
+      if (results.d1) renderF1(results.d1);
+      if (results.d2) renderF2(results.d2);
+      if (results.d3) renderF3(results.d3);
+      const now = new Date().toLocaleString("he-IL");
+      document.getElementById("lastUpdate").textContent = "עדכון אחרון: " + now;
+    }
+  }
+
+  jsonp(URLS.f1 + "?action=summary", (err, data) => {
+    if (!err) results.d1 = data; else document.getElementById("f1content").innerHTML = "<div class='no-data'>שגיאה בטעינה</div>";
+    check();
+  });
+  jsonp(URLS.f2 + "?action=summary", (err, data) => {
+    if (!err) results.d2 = data; else document.getElementById("f2content").innerHTML = "<div class='no-data'>שגיאה בטעינה</div>";
+    check();
+  });
+  jsonp(URLS.f3 + "?action=summary", (err, data) => {
+    if (!err) results.d3 = data; else document.getElementById("f3content").innerHTML = "<div class='no-data'>שגיאה בטעינה</div>";
+    check();
+  });
+}
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+// ── Form 1 ──────────────────────────────────────────────────
+function renderF1(d) {
+  const el = document.getElementById("f1content");
+  const total = (d.cleared||0) + (d.notCleared||0);
+  const s = d.statusCount || {};
+  el.innerHTML = `
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-lbl">סה"כ בניינים</div></div>
+      <div class="stat-box green"><div class="stat-num">${d.cleared||0}</div><div class="stat-lbl">נוקו</div></div>
+      <div class="stat-box red"><div class="stat-num">${d.notCleared||0}</div><div class="stat-lbl">טרם נוקו</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num">${d.totalTenants||0}</div><div class="stat-lbl">סה"כ דיירים</div></div>
+      <div class="stat-box green"><div class="stat-num">${s["בטוח"]||0}</div><div class="stat-lbl">בטוחים</div></div>
+      <div class="stat-box amber"><div class="stat-num">${s["לא נוכח"]||0}</div><div class="stat-lbl">לא נוכחים</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box red"><div class="stat-num">${s["פצוע"]||0}</div><div class="stat-lbl">פצועים</div></div>
+      <div class="stat-box red"><div class="stat-num">${s["נעדר"]||0}</div><div class="stat-lbl">נעדרים</div></div>
+      <div class="stat-box red"><div class="stat-num">${s["לכוד"]||0}</div><div class="stat-lbl">לכודים</div></div>
+    </div>
+    <div class="chart-wrap"><canvas id="chartF1"></canvas></div>`;
+
+  destroyChart("f1");
+  charts["f1"] = new Chart(document.getElementById("chartF1"), {
+    type: "doughnut",
+    data: {
+      labels: ["נוקה","טרם נוקה"],
+      datasets: [{ data: [d.cleared||0, d.notCleared||0], backgroundColor: ["#86efac","#fca5a5"], borderWidth: 0 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom", labels:{ color:"rgba(255,255,255,0.7)", font:{size:12} } } } }
+  });
+}
+
+// ── Form 2 ──────────────────────────────────────────────────
+function renderF2(d) {
+  const el = document.getElementById("f2content");
+  const sev = d.severity || {};
+  const hosp = d.hospitals || {};
+  const hospKeys = Object.keys(hosp).sort((a,b) => hosp[b]-hosp[a]);
+
+  const hospHTML = hospKeys.length === 0
+    ? '<div class="no-data">אין פינויים לבתי חולים</div>'
+    : hospKeys.map(h => `<div class="hosp-row"><span class="hosp-name">🏥 ${h}</span><span class="hosp-count">${hosp[h]}</span></div>`).join("");
+
+  el.innerHTML = `
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num">${d.total||0}</div><div class="stat-lbl">סה"כ פצועים</div></div>
+      <div class="stat-box green"><div class="stat-num">${sev["קל"]||0}</div><div class="stat-lbl">קל</div></div>
+      <div class="stat-box amber"><div class="stat-num">${sev["בינוני"]||0}</div><div class="stat-lbl">בינוני</div></div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box red"><div class="stat-num">${sev["קשה"]||0}</div><div class="stat-lbl">קשה</div></div>
+      <div class="stat-box red"><div class="stat-num">${sev["קריטי"]||0}</div><div class="stat-lbl">קריטי</div></div>
+      <div class="stat-box blue"><div class="stat-num">${sev["לא ידוע"]||0}</div><div class="stat-lbl">לא ידוע</div></div>
+    </div>
+    <div class="chart-wrap-sm"><canvas id="chartF2"></canvas></div>
+    <div class="section-title" style="margin-top:0.85rem; margin-bottom:0.5rem; font-size:12px;">פינויים לבתי חולים</div>
+    <div class="hosp-list">${hospHTML}</div>`;
+
+  destroyChart("f2");
+  charts["f2"] = new Chart(document.getElementById("chartF2"), {
+    type: "bar",
+    data: {
+      labels: ["קל","בינוני","קשה","קריטי","לא ידוע"],
+      datasets: [{ data: [sev["קל"]||0, sev["בינוני"]||0, sev["קשה"]||0, sev["קריטי"]||0, sev["לא ידוע"]||0],
+        backgroundColor: ["#86efac","#fcd34d","#fca5a5","#f87171","#93c5fd"], borderRadius: 6, borderWidth: 0 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+      scales:{ x:{ ticks:{ color:"rgba(255,255,255,0.6)", font:{size:11} }, grid:{ display:false } },
+               y:{ ticks:{ color:"rgba(255,255,255,0.6)", font:{size:11} }, grid:{ color:"rgba(255,255,255,0.08)" } } } }
+  });
+}
+
+// ── Form 3 ──────────────────────────────────────────────────
+function renderF3(d) {
+  const el = document.getElementById("f3content");
+  el.innerHTML = `
+    <div class="stat-row">
+      <div class="stat-box"><div class="stat-num">${d.total||0}</div><div class="stat-lbl">סה"כ פניות</div></div>
+      <div class="stat-box red"><div class="stat-num">${d.open||0}</div><div class="stat-lbl">פתוחות</div></div>
+      <div class="stat-box green"><div class="stat-num">${d.closed||0}</div><div class="stat-lbl">סגורות</div></div>
+    </div>
+    <div class="chart-wrap"><canvas id="chartF3"></canvas></div>`;
+
+  destroyChart("f3");
+  charts["f3"] = new Chart(document.getElementById("chartF3"), {
+    type: "doughnut",
+    data: {
+      labels: ["פתוחות","סגורות"],
+      datasets: [{ data: [d.open||0, d.closed||0], backgroundColor: ["#fca5a5","#86efac"], borderWidth: 0 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:"bottom", labels:{ color:"rgba(255,255,255,0.7)", font:{size:12} } } } }
+  });
+}
+</script>
+</body>
+</html>
