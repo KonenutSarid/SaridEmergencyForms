@@ -96,6 +96,9 @@
   .btn-sheet:active { background: rgba(255,255,255,0.08); }
   .btn-sheet .sheet-icon { font-size: 16px; }
 
+  .btn-row { display: flex; gap: 6px; width: 100%; }
+  .btn-row .btn-form { flex: 1; }
+  .btn-row .btn-sheet { flex: 1; }
   .divider {
     width: 100%;
     height: 1px;
@@ -120,7 +123,10 @@
 
 <div class="header">
   <img src="Sarid100Logo.png" alt="קיבוץ שריד 100" style="width:120px; max-width:40vw; margin-bottom:0.5rem;">
-  <h1>חדר מצב – קיבוץ שריד</h1>
+  <div style="display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;">
+    <h1 style="margin:0">חדר מצב – קיבוץ שריד</h1>
+    <a href="dashboard.html" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:8px; padding:5px 10px; color:white; font-size:12px; font-weight:700; text-decoration:none; white-space:nowrap;">📊 ניתור נתונים</a>
+  </div>
   
 </div>
 
@@ -130,41 +136,42 @@
   <div class="card">
     <div class="icon">🏠</div>
     <div class="card-title">דיווח מצב דירה</div>
-    <div class="divider"></div>
-    <a class="btn-form" href="form1.html" target="_blank">פתח טופס</a>
-    <a class="btn-sheet"
-       href="https://docs.google.com/spreadsheets/d/1AHwAXrVt62_vVGH-0uYBvFDcHmSC2CzM6K0ErXBYAag/edit?gid=1807813251#gid=1807813251"
-       target="_blank">
-      <span class="sheet-icon">📊</span> צפה בנתונים
-    </a>
+        <div class="divider"></div>
+    <div class="btn-row">
+      <a class="btn-form" href="form1.html" target="_blank">פתח טופס</a>
+      <a class="btn-sheet" href="https://docs.google.com/spreadsheets/d/1AHwAXrVt62_vVGH-0uYBvFDcHmSC2CzM6K0ErXBYAag/edit?gid=1807813251#gid=1807813251" target="_blank">
+        <span class="sheet-icon">📊</span> נתונים
+      </a>
+    </div>
   </div>
 
   <!-- Form 2 -->
   <div class="card">
     <div class="icon">🚑</div>
     <div class="card-title">מיפוי פצועים</div>
-    <div class="divider"></div>
-    <a class="btn-form" href="form2.html" target="_blank">פתח טופס</a>
-    <a class="btn-sheet"
-       href="https://docs.google.com/spreadsheets/d/1xfp9BXdofyqHmC4ElYkHmN-b0tnqVVXiSaySrUxv8Xk/edit?gid=1379797226#gid=1379797226"
-       target="_blank">
-      <span class="sheet-icon">📊</span> צפה בנתונים
-    </a>
+        <div class="divider"></div>
+    <div class="btn-row">
+      <a class="btn-form" href="form2.html" target="_blank">פתח טופס</a>
+      <a class="btn-sheet" href="https://docs.google.com/spreadsheets/d/1xfp9BXdofyqHmC4ElYkHmN-b0tnqVVXiSaySrUxv8Xk/edit?gid=1379797226#gid=1379797226" target="_blank">
+        <span class="sheet-icon">📊</span> נתונים
+      </a>
+    </div>
   </div>
 
   <!-- Form 3 -->
   <div class="card">
     <div class="icon">📋</div>
     <div class="card-title">מעקב מס"ר</div>
-    <div class="divider"></div>
-    <a class="btn-form" href="form3.html" target="_blank">פתח טופס</a>
-    <a class="btn-sheet"
-       href="https://docs.google.com/spreadsheets/d/1RdHXUl4PK7mdgyd8cOotUd8obFQVtDSuCoUTZsichdY/edit?gid=1835725583#gid=1835725583"
-       target="_blank">
-      <span class="sheet-icon">📊</span> צפה בנתונים
-    </a>
+        <div class="divider"></div>
+    <div class="btn-row">
+      <a class="btn-form" href="form3.html" target="_blank">פתח טופס</a>
+      <a class="btn-sheet" href="https://docs.google.com/spreadsheets/d/1RdHXUl4PK7mdgyd8cOotUd8obFQVtDSuCoUTZsichdY/edit?gid=1835725583#gid=1835725583" target="_blank">
+        <span class="sheet-icon">📊</span> נתונים
+      </a>
+    </div>
   </div>
 </div>
+
 
 <div class="footer">קיבוץ שריד • מערכת חירום<br>לתמיכה: רביב לויטה</div>
 
