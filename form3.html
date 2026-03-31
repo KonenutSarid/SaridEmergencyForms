@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<title>מעקב מס"ר – קיבוץ שריד</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { direction: rtl; font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; min-height: 100vh; }
+  .form-root { max-width: 600px; margin: 0 auto; padding: 1rem; }
+
+  .form-header { background: #1e3a5f; color: white; border-radius: 14px; padding: 1.25rem; margin-bottom: 1rem; }
+  .form-header h1 { font-size: 19px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+  .form-header p { font-size: 13px; opacity: 0.85; }
+  .ref-badge { display: inline-block; background: rgba(255,255,255,0.2); border-radius: 8px; padding: 4px 12px; font-size: 13px; margin-top: 8px; font-weight: 600; }
+
+  .mode-toggle { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+  .mode-btn {
+    border: 2px solid #ddd; border-radius: 12px; padding: 12px 6px;
+    text-align: center; cursor: pointer; font-size: 13px; font-weight: 700;
+    color: #444; background: white; min-height: 64px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; transition: all 0.15s; user-select: none;
+  }
+  .mode-btn .icon { font-size: 20px; }
+  .mode-btn.active-new      { background: #eff6ff; border-color: #1e3a5f; color: #1e3a5f; }
+  .mode-btn.active-update   { background: #fffbeb; border-color: #d97706; color: #b45309; }
+  .mode-btn.active-release  { background: #f0fdf4; border-color: #16a34a; color: #15803d; }
+
+  .card { background: white; border: 0.5px solid #e0e0e0; border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: 0.85rem; }
+  .card-title { font-size: 12px; font-weight: 700; color: #888; margin-bottom: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .field { margin-bottom: 0.85rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 14px; font-weight: 600; color: #222; margin-bottom: 6px; }
+  .field label .req { color: #1e3a5f; margin-right: 2px; }
+  .field input, .field textarea {
+    width: 100%; border: 1.5px solid #ddd; border-radius: 10px;
+    padding: 12px 14px; font-size: 16px; font-family: inherit;
+    background: #fafafa; color: #222; direction: rtl;
+    -webkit-appearance: none; appearance: none; min-height: 48px;
+  }
+  .field input:focus, .field textarea:focus {
+    outline: none; border-color: #1e3a5f; background: white;
+    box-shadow: 0 0 0 3px rgba(30,58,95,0.1);
+  }
+  .field textarea { resize: none; min-height: 90px; line-height: 1.5; }
+
+  .setup-banner {
+    background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 12px;
+    padding: 1rem; margin-bottom: 0.85rem; display: none;
+  }
+  .setup-banner p { font-size: 14px; color: #1e3a5f; margin-bottom: 8px; font-weight: 500; }
+  .setup-banner input {
+    width: 100%; border: 1.5px solid #93c5fd; border-radius: 10px;
+    padding: 12px 14px; font-size: 16px; font-family: inherit;
+    background: white; color: #222; direction: rtl; min-height: 48px; margin-bottom: 8px;
+  }
+  .setup-banner button {
+    width: 100%; background: #1e3a5f; color: white; border: none;
+    border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit; min-height: 48px;
+  }
+
+  .handler-row { display: flex; align-items: center; gap: 10px; }
+  .handler-name-display {
+    flex: 1; border: 1.5px solid #ddd; border-radius: 10px;
+    padding: 12px 14px; font-size: 16px; background: #f0f4f8;
+    color: #222; direction: rtl; min-height: 48px; display: flex; align-items: center;
+  }
+  .change-btn {
+    background: none; border: 1.5px solid #ddd; border-radius: 10px;
+    padding: 10px 14px; font-size: 13px; font-weight: 600; color: #666;
+    cursor: pointer; font-family: inherit; white-space: nowrap; min-height: 48px;
+  }
+
+  .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .status-option {
+    border: 2px solid #ddd; border-radius: 12px; padding: 12px 8px;
+    text-align: center; cursor: pointer; font-size: 13px; font-weight: 600;
+    color: #444; min-height: 60px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+    user-select: none; background: #fafafa; transition: all 0.15s;
+  }
+  .status-option .icon { font-size: 20px; }
+  .status-option.sel-routine   { background: #f0fdf4; border-color: #16a34a; color: #15803d; }
+  .status-option.sel-followup  { background: #fffbeb; border-color: #d97706; color: #b45309; }
+  .status-option.sel-treatment { background: #eff6ff; border-color: #1e3a5f; color: #1e3a5f; }
+
+  /* Search */
+  .search-type { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .search-type-btn {
+    border: 1.5px solid #ddd; border-radius: 10px; padding: 10px;
+    text-align: center; cursor: pointer; font-size: 14px; font-weight: 600;
+    color: #666; background: #fafafa; min-height: 44px;
+  }
+  .search-type-btn.active { background: #eff6ff; border-color: #1e3a5f; color: #1e3a5f; }
+  .search-row { display: flex; gap: 8px; }
+  .search-row input { flex: 1; }
+  .search-btn {
+    background: #1e3a5f; color: white; border: none; border-radius: 10px;
+    padding: 12px 16px; font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; white-space: nowrap; min-height: 48px;
+  }
+  .search-btn:active { background: #152d4a; }
+
+  /* Results */
+  .results-list { margin-top: 10px; display: none; }
+  .result-item {
+    background: #f8faff; border: 1.5px solid #bcd; border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .result-item:active { background: #eff6ff; border-color: #1e3a5f; }
+  .result-item .result-name { font-size: 15px; font-weight: 700; color: #1e3a5f; }
+  .result-item .result-meta { font-size: 12px; color: #888; margin-top: 3px; }
+  .result-item.release-item { background: #f8fff8; border-color: #86efac; }
+  .result-item.release-item .result-name { color: #15803d; }
+  .no-results { text-align: center; color: #888; font-size: 14px; padding: 1rem; }
+  .loading-msg { text-align: center; color: #888; font-size: 14px; padding: 1rem; }
+
+  .submit-btn {
+    width: 100%; background: #1e3a5f; color: white; border: none;
+    border-radius: 14px; padding: 17px; font-size: 17px; font-weight: 700;
+    cursor: pointer; font-family: inherit; margin-top: 0.5rem;
+    min-height: 58px; letter-spacing: 0.01em;
+  }
+  .submit-btn.green { background: #16a34a; }
+  .submit-btn.green:active { background: #15803d; }
+  .submit-btn:active { background: #152d4a; transform: scale(0.99); }
+  .submit-btn:disabled { opacity: 0.55; }
+
+  .success-banner {
+    background: #f0fdf4; border: 2px solid #16a34a; color: #15803d;
+    border-radius: 12px; padding: 1.1rem; text-align: center;
+    font-size: 16px; font-weight: 700; display: none; margin-bottom: 1rem; line-height: 1.6;
+  }
+  .error-banner {
+    background: #fff1f1; border: 2px solid #dc2626; color: #b91c1c;
+    border-radius: 12px; padding: 1rem; text-align: center;
+    font-size: 14px; display: none; margin-bottom: 1rem;
+  }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-left: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="form-root" dir="rtl">
+
+  <div class="setup-banner" id="setupBanner">
+    <p>👋 ברוך הבא! הכנס את שמך כדי שיופיע אוטומטית:</p>
+    <input type="text" id="setupName" placeholder="שם מלא">
+    <button onclick="saveHandlerName()">שמור והמשך</button>
+  </div>
+
+  <div class="form-header">
+    <h1>📋 מעקב מס"ר</h1>
+    <p>קיבוץ שריד &nbsp;•&nbsp; טופס חירום</p>
+    <div class="ref-badge" id="refBadge">מספר פנייה: <span id="refNumDisplay">1</span></div>
+  </div>
+
+  <div class="mode-toggle">
+    <div class="mode-btn active-new" id="btn-new"     onclick="setMode('new')">
+      <span class="icon">🆕</span>פנייה חדשה
+    </div>
+    <div class="mode-btn" id="btn-update"  onclick="setMode('update')">
+      <span class="icon">✏️</span>עדכון פנייה
+    </div>
+    <div class="mode-btn" id="btn-release" onclick="setMode('release')">
+      <span class="icon">🔓</span>שחרור
+    </div>
+  </div>
+
+  <div class="success-banner" id="successBanner"></div>
+  <div class="error-banner"   id="errorBanner">❌ שגיאה בשליחה. בדוק חיבור אינטרנט ונסה שוב.</div>
+
+  <!-- Search (update mode) -->
+  <div class="card" id="searchSection" style="display:none">
+    <div class="card-title">חיפוש פנייה קיימת</div>
+    <div class="search-type">
+      <div class="search-type-btn active" id="stype-num"  onclick="setSearchType('num')">לפי מספר פנייה</div>
+      <div class="search-type-btn"        id="stype-name" onclick="setSearchType('name')">לפי שם</div>
+    </div>
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="הכנס מספר פנייה...">
+      <button class="search-btn" id="searchBtn" onclick="doSearch()">🔍 חפש</button>
+    </div>
+    <div class="results-list" id="searchResults"></div>
+  </div>
+
+  <!-- Release list -->
+  <div class="card" id="releaseSection" style="display:none">
+    <div class="card-title">פניות פתוחות לשחרור</div>
+    <div class="results-list" id="releaseResults" style="display:block">
+      <div class="loading-msg">⏳ טוען רשימה...</div>
+    </div>
+  </div>
+
+  <!-- Main form fields -->
+  <div id="formFields" style="display:none">
+
+    <!-- NEW + UPDATE -->
+    <div id="fullFormFields">
+      <div class="card">
+        <div class="card-title">פרטי הפונה</div>
+        <div class="field">
+          <label><span class="req">*</span> שם פרטי ומשפחה</label>
+          <input type="text" id="fullName" placeholder="שם מלא">
+        </div>
+        <div class="field">
+          <label>איש קשר</label>
+          <input type="text" id="contactInfo" placeholder="שם ומספר טלפון">
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">פרטי הפנייה</div>
+        <div class="field">
+          <label><span class="req">*</span> תיאור הפנייה</label>
+          <textarea id="requestDesc" placeholder="תאר את הפנייה בפירוט..."></textarea>
+        </div>
+        <div class="field">
+          <label>מענה שקיבל</label>
+          <textarea id="responseGiven" placeholder="מה המענה שניתן לפונה..."></textarea>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">סטטוס בשחרור</div>
+        <div class="status-grid">
+          <div class="status-option" id="stat-routine"   onclick="selectStatus('routine')">
+            <span class="icon">✅</span>שגרה
+          </div>
+          <div class="status-option" id="stat-followup"  onclick="selectStatus('followup')">
+            <span class="icon">👁️</span>המשך מעקב
+          </div>
+          <div class="status-option" id="stat-treatment" onclick="selectStatus('treatment')">
+            <span class="icon">🔵</span>טיפול מקצועי
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">מי טיפל</div>
+        <div class="field" style="margin-bottom:0">
+          <div class="handler-row">
+            <div class="handler-name-display" id="handlerDisplay">—</div>
+            <button class="change-btn" onclick="showSetup()">שנה</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">הערות (אופציונלי)</div>
+        <div class="field">
+          <textarea id="notes" placeholder="מידע נוסף..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELEASE only fields -->
+    <div id="releaseFormFields" style="display:none">
+      <div class="card" style="border: 2px solid #86efac;">
+        <div class="card-title" style="color:#15803d">🔓 שחרור פנייה</div>
+        <div style="font-size:14px; font-weight:700; color:#1e3a5f; margin-bottom:1rem;" id="releasePersonName"></div>
+        <div class="card-title" style="margin-bottom:0.5rem">סטטוס בשחרור</div>
+        <div class="status-grid" style="margin-bottom:0.85rem">
+          <div class="status-option" id="rstat-routine"   onclick="selectReleaseStatus('routine')">
+            <span class="icon">✅</span>שגרה
+          </div>
+          <div class="status-option" id="rstat-followup"  onclick="selectReleaseStatus('followup')">
+            <span class="icon">👁️</span>המשך מעקב
+          </div>
+          <div class="status-option" id="rstat-treatment" onclick="selectReleaseStatus('treatment')">
+            <span class="icon">🔵</span>טיפול מקצועי
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>הערות שחרור</label>
+          <textarea id="releaseNotes" placeholder="הערות לשחרור..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">שלח פנייה</button>
+    <div style="height:2rem"></div>
+  </div>
+
+</div>
+
+<iframe name="hidden_iframe3" id="hidden_iframe3" style="display:none"></iframe>
+<form id="hidden_form3" method="POST" action="REPLACE_WITH_FORM3_SCRIPT_URL" target="hidden_iframe3" style="display:none">
+  <input type="hidden" name="mode"           id="f_mode">
+  <input type="hidden" name="rowIndex"       id="f_rowIndex">
+  <input type="hidden" name="timestamp"      id="f_timestamp">
+  <input type="hidden" name="refNum"         id="f_refNum">
+  <input type="hidden" name="fullName"       id="f_fullName">
+  <input type="hidden" name="contactInfo"    id="f_contactInfo">
+  <input type="hidden" name="requestDesc"    id="f_requestDesc">
+  <input type="hidden" name="responseGiven"  id="f_responseGiven">
+  <input type="hidden" name="releaseStatus"  id="f_releaseStatus">
+  <input type="hidden" name="handler"        id="f_handler">
+  <input type="hidden" name="notes"          id="f_notes">
+  <input type="hidden" name="releaseTime"    id="f_releaseTime">
+  <input type="hidden" name="hadReleaseTime" id="f_hadReleaseTime">
+</form>
+
+<script>
+const SCRIPT_URL     = "REPLACE_WITH_FORM3_SCRIPT_URL";
+const STATUS_LABELS  = { routine:"שגרה", followup:"המשך מעקב", treatment:"טיפול מקצועי" };
+const STATUS_CLASSES = { routine:"sel-routine", followup:"sel-followup", treatment:"sel-treatment" };
+
+let mode            = "new";
+let searchType      = "num";
+let statusVal       = "";
+let releaseStatusVal= "";
+let refNum          = 1;
+let submitting      = false;
+let currentRowIndex = -1;
+let currentHadReleaseTime = false;
+
+if (localStorage.getItem("masarRefNum")) refNum = parseInt(localStorage.getItem("masarRefNum"));
+document.getElementById("refNumDisplay").textContent = refNum;
+
+const savedHandler = localStorage.getItem("masarHandler");
+if (!savedHandler) {
+  document.getElementById("setupBanner").style.display = "block";
+} else {
+  document.getElementById("handlerDisplay").textContent = savedHandler;
+}
+
+function saveHandlerName() {
+  const name = document.getElementById("setupName").value.trim();
+  if (!name) { alert("נא להכניס שם"); return; }
+  localStorage.setItem("masarHandler", name);
+  document.getElementById("handlerDisplay").textContent = name;
+  document.getElementById("setupBanner").style.display = "none";
+  if (mode === "new") {
+    document.getElementById("formFields").style.display = "block";
+    document.getElementById("fullFormFields").style.display = "block";
+  }
+}
+
+function showSetup() {
+  document.getElementById("setupBanner").style.display = "block";
+  document.getElementById("setupName").value = localStorage.getItem("masarHandler") || "";
+  document.getElementById("setupName").focus();
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById("btn-new").className     = "mode-btn" + (m==="new"     ? " active-new"     : "");
+  document.getElementById("btn-update").className  = "mode-btn" + (m==="update"  ? " active-update"  : "");
+  document.getElementById("btn-release").className = "mode-btn" + (m==="release" ? " active-release" : "");
+
+  document.getElementById("refBadge").style.display       = m==="new" ? "inline-block" : "none";
+  document.getElementById("searchSection").style.display  = m==="update"  ? "block" : "none";
+  document.getElementById("releaseSection").style.display = m==="release" ? "block" : "none";
+  document.getElementById("formFields").style.display     = m==="new" && localStorage.getItem("masarHandler") ? "block" : "none";
+  document.getElementById("fullFormFields").style.display    = "block";
+  document.getElementById("releaseFormFields").style.display = "none";
+  document.getElementById("successBanner").style.display  = "none";
+  document.getElementById("errorBanner").style.display    = "none";
+
+  const btn = document.getElementById("submitBtn");
+  btn.textContent = m==="new" ? "שלח פנייה" : m==="update" ? "שמור עדכון" : "שמור שחרור";
+  btn.className   = "submit-btn" + (m==="release" ? " green" : "");
+
+  clearForm();
+  currentRowIndex = -1;
+
+  if (m==="release") loadReleaseList();
+  if (m==="update") {
+    document.getElementById("searchResults").style.display = "none";
+    document.getElementById("searchInput").value = "";
+  }
+}
+
+function setSearchType(t) {
+  searchType = t;
+  document.getElementById("stype-num").className  = "search-type-btn" + (t==="num"  ? " active" : "");
+  document.getElementById("stype-name").className = "search-type-btn" + (t==="name" ? " active" : "");
+  document.getElementById("searchInput").placeholder = t==="num" ? "הכנס מספר פנייה..." : "הכנס שם...";
+  document.getElementById("searchInput").value = "";
+  document.getElementById("searchResults").style.display = "none";
+}
+
+function doSearch() {
+  const query = document.getElementById("searchInput").value.trim();
+  if (!query) { alert("נא להכניס ערך לחיפוש"); return; }
+  const btn = document.getElementById("searchBtn");
+  btn.textContent = "...מחפש"; btn.disabled = true;
+  fetch(SCRIPT_URL + "?action=search&query=" + encodeURIComponent(query) + "&by=" + searchType)
+    .then(r => r.json())
+    .then(data => { btn.textContent = "🔍 חפש"; btn.disabled = false; showSearchResults(data); })
+    .catch(() => { btn.textContent = "🔍 חפש"; btn.disabled = false; alert("שגיאה בחיפוש"); });
+}
+
+function showSearchResults(data) {
+  const list = document.getElementById("searchResults");
+  list.style.display = "block"; list.innerHTML = "";
+  if (!data.results || data.results.length === 0) {
+    list.innerHTML = '<div class="no-results">לא נמצאו תוצאות</div>'; return;
+  }
+  data.results.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "result-item";
+    div.innerHTML = `<div class="result-name">${item.fullName}</div>
+      <div class="result-meta">פנייה מס׳ ${item.refNum} &nbsp;•&nbsp; ${item.timestamp} &nbsp;•&nbsp; ${item.releaseStatus||"ללא סטטוס"}</div>`;
+    div.onclick = () => loadRecord(item, "update");
+    list.appendChild(div);
+  });
+}
+
+function loadReleaseList() {
+  const list = document.getElementById("releaseResults");
+  list.innerHTML = '<div class="loading-msg">⏳ טוען רשימה...</div>';
+  fetch(SCRIPT_URL + "?action=open")
+    .then(r => r.json())
+    .then(data => {
+      list.innerHTML = "";
+      if (!data.results || data.results.length === 0) {
+        list.innerHTML = '<div class="no-results">✅ אין פניות פתוחות!</div>'; return;
+      }
+      data.results.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "result-item release-item";
+        div.innerHTML = `<div class="result-name">${item.fullName}</div>
+          <div class="result-meta">פנייה מס׳ ${item.refNum} &nbsp;•&nbsp; ${item.timestamp} &nbsp;•&nbsp; ${item.releaseStatus||"ללא סטטוס"}</div>`;
+        div.onclick = () => loadRecord(item, "release");
+        list.appendChild(div);
+      });
+    })
+    .catch(() => { list.innerHTML = '<div class="no-results">שגיאה בטעינה. נסה שוב.</div>'; });
+}
+
+function loadRecord(item, loadMode) {
+  currentRowIndex = item.rowIndex;
+  currentHadReleaseTime = !!item.releaseTime;
+
+  if (loadMode === "update") {
+    document.getElementById("fullFormFields").style.display    = "block";
+    document.getElementById("releaseFormFields").style.display = "none";
+    document.getElementById("fullName").value      = item.fullName      || "";
+    document.getElementById("contactInfo").value   = item.contactInfo   || "";
+    document.getElementById("requestDesc").value   = item.requestDesc   || "";
+    document.getElementById("responseGiven").value = item.responseGiven || "";
+    document.getElementById("notes").value         = item.notes         || "";
+    document.getElementById("refNumDisplay").textContent = item.refNum;
+    const statusMap = { "שגרה":"routine","המשך מעקב":"followup","טיפול מקצועי":"treatment" };
+    const sKey = statusMap[item.releaseStatus];
+    if (sKey) selectStatus(sKey); else clearStatus();
+    document.getElementById("searchResults").style.display = "none";
+  } else {
+    document.getElementById("fullFormFields").style.display    = "none";
+    document.getElementById("releaseFormFields").style.display = "block";
+    document.getElementById("releasePersonName").textContent   = item.fullName + " — פנייה מס׳ " + item.refNum;
+    document.getElementById("releaseNotes").value = "";
+    clearReleaseStatus();
+    document.getElementById("releaseResults").style.display = "none";
+  }
+
+  document.getElementById("formFields").style.display = "block";
+  window.scrollTo(0, document.getElementById("formFields").offsetTop - 20);
+}
+
+function selectStatus(val) {
+  statusVal = val;
+  ["routine","followup","treatment"].forEach(s => {
+    document.getElementById("stat-"+s).className = "status-option" + (s===val ? " "+STATUS_CLASSES[s] : "");
+  });
+}
+function clearStatus() {
+  statusVal = "";
+  ["routine","followup","treatment"].forEach(s => {
+    document.getElementById("stat-"+s).className = "status-option";
+  });
+}
+function selectReleaseStatus(val) {
+  releaseStatusVal = val;
+  ["routine","followup","treatment"].forEach(s => {
+    document.getElementById("rstat-"+s).className = "status-option" + (s===val ? " "+STATUS_CLASSES[s] : "");
+  });
+}
+function clearReleaseStatus() {
+  releaseStatusVal = "";
+  ["routine","followup","treatment"].forEach(s => {
+    document.getElementById("rstat-"+s).className = "status-option";
+  });
+}
+
+function clearForm() {
+  ["fullName","contactInfo","requestDesc","responseGiven","notes","releaseNotes"].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = "";
+  });
+  clearStatus(); clearReleaseStatus();
+}
+
+function resetAfterSubmit() {
+  clearForm();
+  if (mode==="new") {
+    refNum++; localStorage.setItem("masarRefNum", refNum);
+    document.getElementById("refNumDisplay").textContent = refNum;
+  }
+  currentRowIndex = -1;
+  if (mode !== "new") document.getElementById("formFields").style.display = "none";
+  if (mode === "release") {
+    document.getElementById("releaseResults").style.display = "block";
+    loadReleaseList();
+  }
+  window.scrollTo(0,0);
+}
+
+document.getElementById("hidden_iframe3").addEventListener("load", function() {
+  if (!submitting) return;
+  submitting = false;
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = false;
+  btn.innerHTML = mode==="new" ? "שלח פנייה" : mode==="update" ? "שמור עדכון" : "שמור שחרור";
+  const msgs = { new:"✅ הפנייה נשלחה בהצלחה!", update:"✅ הפנייה עודכנה בהצלחה!", release:"✅ השחרור נשמר בהצלחה!" };
+  document.getElementById("successBanner").innerHTML = msgs[mode] + "<br><span style='font-size:14px;font-weight:400'>הנתונים עודכנו בגיליון.</span>";
+  document.getElementById("successBanner").style.display = "block";
+  resetAfterSubmit();
+  setTimeout(() => { window.close(); }, 2500);
+});
+
+function submitForm() {
+  const handler = localStorage.getItem("masarHandler") || "";
+  if (!handler) { alert("נא להכניס את שמך תחילה"); showSetup(); return; }
+  if ((mode==="update"||mode==="release") && currentRowIndex===-1) {
+    alert(mode==="update" ? "נא לחפש ולבחור פנייה לעדכון" : "נא לבחור פנייה לשחרור"); return;
+  }
+
+  const now = new Date().toLocaleString("he-IL");
+
+  if (mode==="release") {
+    if (!releaseStatusVal) { alert("נא לבחור סטטוס שחרור"); return; }
+    document.getElementById("f_mode").value          = "release";
+    document.getElementById("f_rowIndex").value      = currentRowIndex;
+    document.getElementById("f_releaseStatus").value = STATUS_LABELS[releaseStatusVal];
+    document.getElementById("f_notes").value         = document.getElementById("releaseNotes").value.trim();
+    document.getElementById("f_handler").value       = handler;
+    document.getElementById("f_releaseTime").value   = currentHadReleaseTime ? "" : now;
+    document.getElementById("f_hadReleaseTime").value= currentHadReleaseTime ? "yes" : "no";
+    document.getElementById("f_timestamp").value     = now;
+  } else {
+    const fullName    = document.getElementById("fullName").value.trim();
+    const requestDesc = document.getElementById("requestDesc").value.trim();
+    if (!fullName)    { alert("נא למלא שם פרטי ומשפחה"); return; }
+    if (!requestDesc) { alert("נא למלא תיאור הפנייה"); return; }
+    document.getElementById("f_mode").value          = mode;
+    document.getElementById("f_rowIndex").value      = currentRowIndex;
+    document.getElementById("f_timestamp").value     = now;
+    document.getElementById("f_refNum").value        = document.getElementById("refNumDisplay").textContent;
+    document.getElementById("f_fullName").value      = fullName;
+    document.getElementById("f_contactInfo").value   = document.getElementById("contactInfo").value.trim();
+    document.getElementById("f_requestDesc").value   = requestDesc;
+    document.getElementById("f_responseGiven").value = document.getElementById("responseGiven").value.trim();
+    document.getElementById("f_releaseStatus").value = STATUS_LABELS[statusVal] || "לא צוין";
+    document.getElementById("f_handler").value       = handler;
+    document.getElementById("f_notes").value         = document.getElementById("notes").value.trim();
+    document.getElementById("f_releaseTime").value   = statusVal && !currentHadReleaseTime ? now : "";
+    document.getElementById("f_hadReleaseTime").value= currentHadReleaseTime ? "yes" : "no";
+  }
+
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.innerHTML = 'שולח... <span class="spinner"></span>';
+  document.getElementById("successBanner").style.display = "none";
+  document.getElementById("errorBanner").style.display   = "none";
+
+  submitting = true;
+  document.getElementById("hidden_form3").submit();
+
+  setTimeout(() => {
+    if (!submitting) return;
+    submitting = false;
+    btn.disabled = false;
+    btn.textContent = mode==="new" ? "שלח פנייה" : mode==="update" ? "שמור עדכון" : "שמור שחרור";
+    document.getElementById("successBanner").innerHTML = "✅ נשלח בהצלחה!";
+    document.getElementById("successBanner").style.display = "block";
+    resetAfterSubmit();
+    setTimeout(() => { window.close(); }, 2500);
+  }, 5000);
+}
+</script>
+</body>
+</html>
