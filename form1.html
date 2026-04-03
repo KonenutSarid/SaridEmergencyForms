@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>דיווח חירום – קיבוץ שריד</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -145,6 +148,16 @@
   </div>
 
   <div class="card">
+    <div class="card-title">מי מדווח</div>
+    <div class="field" style="margin-bottom:0">
+      <div class="handler-row">
+        <div class="handler-name-display" id="handlerDisplay">—</div>
+        <button class="change-btn" onclick="showSetup()">שנה</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="card-title">הערות (אופציונלי)</div>
     <div class="field">
       <textarea id="notes" placeholder="מידע נוסף, הערות חשובות..."></textarea>
@@ -156,17 +169,6 @@
 
 </div>
 
-<!-- Hidden iframe used to submit form without CORS issues -->
-<iframe name="hidden_iframe" id="hidden_iframe" style="display:none"></iframe>
-<form id="hidden_form" method="POST" target="hidden_iframe" style="display:none">
-  <input type="hidden" name="timestamp"     id="f_timestamp">
-  <input type="hidden" name="familyName"    id="f_familyName">
-  <input type="hidden" name="address"       id="f_address">
-  <input type="hidden" name="buildingStatus"id="f_buildingStatus">
-  <input type="hidden" name="tenants"       id="f_tenants">
-  <input type="hidden" name="notes"         id="f_notes">
-  <input type="hidden" name="handler"       id="f_handler">
-</form>
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqFbzT6odHcQ_7UXBBPcUaRMz14_TJiI7zzz-KKwaMi4rmJdRBa5fw-xnT55lFkTRo/exec";
@@ -247,17 +249,6 @@ function resetForm() {
   window.scrollTo(0, 0);
 }
 
-// Listen for iframe load = submission complete
-document.getElementById("hidden_iframe").addEventListener("load", function() {
-  if (!submitting) return;
-  submitting = false;
-  const btn = document.getElementById("submitBtn");
-  btn.disabled = false;
-  btn.innerHTML = "שלח דיווח";
-  document.getElementById("successBanner").style.display = "block"; setTimeout(() => { window.close(); }, 2500);
-  document.getElementById("errorBanner").style.display   = "none";
-  resetForm();
-});
 
 const savedHandler = localStorage.getItem("reporterName");
 if (!savedHandler) {
@@ -287,20 +278,11 @@ function submitForm() {
   if (!address)    { alert("נא למלא כתובת / מספר בניין"); return; }
   if (tenants.length === 0) { alert("נא להוסיף לפחות דייר אחד עם שם"); return; }
 
+  const handler = localStorage.getItem("reporterName") || "";
+  if (!handler) { alert("נא להכניס את שמך תחילה"); showSetup(); return; }
+
   const buildingLabel = buildingStatusVal === "cleared" ? "נוקה" : buildingStatusVal === "notcleared" ? "טרם נוקה" : "לא צוין";
   const tenantsStr    = tenants.map(t => t.name + " – " + (STATUS_LABELS[t.status] || t.status)).join(" | ");
-
-  // Fill hidden form
-  document.getElementById("f_timestamp").value      = new Date().toLocaleString("he-IL");
-  document.getElementById("f_familyName").value     = familyName;
-  document.getElementById("f_address").value        = address;
-  document.getElementById("f_buildingStatus").value = buildingLabel;
-  document.getElementById("f_tenants").value        = tenantsStr;
-  document.getElementById("f_notes").value          = document.getElementById("notes").value.trim();
-
-  // Set form action and submit
-  const form = document.getElementById("hidden_form");
-  form.action = SCRIPT_URL;
 
   const btn = document.getElementById("submitBtn");
   btn.disabled = true;
@@ -308,27 +290,33 @@ function submitForm() {
   document.getElementById("successBanner").style.display = "none";
   document.getElementById("errorBanner").style.display   = "none";
 
-  // Submit via fetch to get ref number back
-  fetch(SCRIPT_URL, { method: 'POST', body: fd })
+  const fd = new FormData();
+  fd.append("timestamp",     new Date().toLocaleString("he-IL"));
+  fd.append("familyName",    familyName);
+  fd.append("address",       address);
+  fd.append("buildingStatus",buildingLabel);
+  fd.append("tenants",       tenantsStr);
+  fd.append("notes",         document.getElementById("notes").value.trim());
+  fd.append("handler",       handler);
+
+  fetch(SCRIPT_URL, { method: "POST", body: fd })
     .then(r => r.json())
     .then(data => {
-      const num = data.refNum || '?';
-      document.getElementById('successBanner').innerHTML = '✅ דיווח מס׳ ' + num + ' נשמר בהצלחה!<br><span style="font-size:14px;font-weight:400">תודה רבה.</span>';
-      document.getElementById('successBanner').style.display = 'block';
-      document.getElementById('errorBanner').style.display = 'none';
+      const num = data.refNum || "?";
+      document.getElementById("successBanner").innerHTML = "✅ דיווח מס׳ " + num + " נשמר בהצלחה!<br><span style='font-size:14px;font-weight:400'>תודה רבה.</span>";
+      document.getElementById("successBanner").style.display = "block";
+      document.getElementById("errorBanner").style.display   = "none";
       btn.disabled = false;
-      btn.innerHTML = 'שלח דיווח';
+      btn.innerHTML = "שלח דיווח";
       resetForm();
       setTimeout(() => { window.close(); }, 2500);
     })
     .catch(() => {
-      document.getElementById('errorBanner').style.display = 'block';
+      document.getElementById("errorBanner").style.display = "block";
       btn.disabled = false;
-      btn.innerHTML = 'שלח דיווח';
+      btn.innerHTML = "שלח דיווח";
     });
-  return;
-
-  }
+}
 
 addTenant();
 </script>
