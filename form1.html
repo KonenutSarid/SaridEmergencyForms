@@ -86,6 +86,12 @@
 <body>
 <div class="form-root" dir="rtl">
 
+      <div class="setup-banner" id="setupBanner">
+    <p>👋 ברוך הבא! הכנס את שמך כדי שיופיע אוטומטית:</p>
+    <input type="text" id="setupName" placeholder="שם מלא">
+    <button onclick="saveHandlerName()">שמור והמשך</button>
+  </div>
+
   <div class="form-header">
     <h1>🚨 דיווח מצב בניין ודיירים</h1>
     <p>קיבוץ שריד &nbsp;•&nbsp; טופס חירום</p>
@@ -152,10 +158,11 @@
   <input type="hidden" name="buildingStatus"id="f_buildingStatus">
   <input type="hidden" name="tenants"       id="f_tenants">
   <input type="hidden" name="notes"         id="f_notes">
+  <input type="hidden" name="handler"       id="f_handler">
 </form>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwcsx_F34NZpprYcYRMAbrn_DElaoyqbf-hapYSBErdhwZcvWVIKsxx1lFUHzceVjiK/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZSCFI2uYWq8s1pjVolN9H0FXzrPfd-jvdrueU8VmtA3E3TlHcomqJVHqW3jY0hDPP/exec";
 
 const STATUSES = [
   { value: "not_present", label: "לא נוכח" },
@@ -168,7 +175,6 @@ const STATUS_LABELS = Object.fromEntries(STATUSES.map(s => [s.value, s.label]));
 
 let tenantCount = 0;
 let buildingStatusVal = "";
-let submitting = false;
 
 function selectBuilding(val) {
   buildingStatusVal = val;
@@ -246,6 +252,25 @@ document.getElementById("hidden_iframe").addEventListener("load", function() {
   resetForm();
 });
 
+const savedHandler = localStorage.getItem("reporterName");
+if (!savedHandler) {
+  document.getElementById("setupBanner").style.display = "block";
+} else {
+  document.getElementById("handlerDisplay").textContent = savedHandler;
+}
+function saveHandlerName() {
+  const name = document.getElementById("setupName").value.trim();
+  if (!name) { alert("נא להכניס שם"); return; }
+  localStorage.setItem("reporterName", name);
+  document.getElementById("handlerDisplay").textContent = name;
+  document.getElementById("setupBanner").style.display = "none";
+}
+function showSetup() {
+  document.getElementById("setupBanner").style.display = "block";
+  document.getElementById("setupName").value = localStorage.getItem("reporterName") || "";
+  document.getElementById("setupName").focus();
+}
+
 function submitForm() {
   const familyName = document.getElementById("familyName").value.trim();
   const address    = document.getElementById("address").value.trim();
@@ -276,19 +301,27 @@ function submitForm() {
   document.getElementById("successBanner").style.display = "none";
   document.getElementById("errorBanner").style.display   = "none";
 
-  submitting = true;
-  form.submit();
+  // Submit via fetch to get ref number back
+  fetch(SCRIPT_URL, { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(data => {
+      const num = data.refNum || '?';
+      document.getElementById('successBanner').innerHTML = '✅ דיווח מס׳ ' + num + ' נשמר בהצלחה!<br><span style="font-size:14px;font-weight:400">תודה רבה.</span>';
+      document.getElementById('successBanner').style.display = 'block';
+      document.getElementById('errorBanner').style.display = 'none';
+      btn.disabled = false;
+      btn.innerHTML = 'שלח דיווח';
+      resetForm();
+      setTimeout(() => { window.close(); }, 2500);
+    })
+    .catch(() => {
+      document.getElementById('errorBanner').style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = 'שלח דיווח';
+    });
+  return;
 
-  // Fallback — if iframe doesn't fire after 5 sec, show success anyway
-  setTimeout(() => {
-    if (!submitting) return;
-    submitting = false;
-    btn.disabled = false;
-    btn.innerHTML = "שלח דיווח";
-    document.getElementById("successBanner").style.display = "block"; setTimeout(() => { window.close(); }, 2500);
-    resetForm();
-  }, 5000);
-}
+  }
 
 addTenant();
 </script>

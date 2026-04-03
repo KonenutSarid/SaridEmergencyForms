@@ -159,7 +159,6 @@
   <div class="form-header">
     <h1>📋 מעקב מס"ר</h1>
     <p>קיבוץ שריד &nbsp;•&nbsp; טופס חירום</p>
-    <div class="ref-badge" id="refBadge">מספר פנייה: <span id="refNumDisplay">1</span></div>
   </div>
 
   <div class="mode-toggle">
@@ -288,7 +287,7 @@
 </div>
 
 <iframe name="hidden_iframe3" id="hidden_iframe3" style="display:none"></iframe>
-<form id="hidden_form3" method="POST" action="https://script.google.com/macros/s/AKfycbxrnuKQi-c7aKisVm31KBecuiQO9CAGV5mkSbtXRslZ6xWthRlVsY5Tt9ePzUdSVv6lVQ/exec" target="hidden_iframe3" style="display:none">
+<form id="hidden_form3" method="POST" action="https://script.google.com/macros/s/AKfycbzZfzighVoseMxSnJzxtWYgimILjHbABFdViIFHZnpSjg87cHAeSuvqJtzBV-IMxvKHRg/exec" target="hidden_iframe3" style="display:none">
   <input type="hidden" name="mode"           id="f_mode">
   <input type="hidden" name="rowIndex"       id="f_rowIndex">
   <input type="hidden" name="timestamp"      id="f_timestamp">
@@ -305,7 +304,7 @@
 </form>
 
 <script>
-const SCRIPT_URL     = "https://script.google.com/macros/s/AKfycbxrnuKQi-c7aKisVm31KBecuiQO9CAGV5mkSbtXRslZ6xWthRlVsY5Tt9ePzUdSVv6lVQ/exec";
+const SCRIPT_URL     = "https://script.google.com/macros/s/AKfycbzZfzighVoseMxSnJzxtWYgimILjHbABFdViIFHZnpSjg87cHAeSuvqJtzBV-IMxvKHRg/exec";
 const STATUS_LABELS  = { routine:"שגרה", followup:"המשך מעקב", treatment:"טיפול מקצועי" };
 const STATUS_CLASSES = { routine:"sel-routine", followup:"sel-followup", treatment:"sel-treatment" };
 
@@ -313,7 +312,6 @@ let mode            = "new";
 let searchType      = "num";
 let statusVal       = "";
 let releaseStatusVal= "";
-let refNum          = 1;
 let submitting      = false;
 let currentRowIndex = -1;
 let currentHadReleaseTime = false;
@@ -330,215 +328,10 @@ if (!savedHandler) {
 }
 
 // FIX: always fetch ref number from server
-// JSONP helper
-function jsonp(url, callback) {
-  const name = "cb_" + Math.random().toString(36).slice(2);
-  window[name] = function(data) {
-    delete window[name];
-    const s = document.getElementById("s_"+name);
-    if (s) s.remove();
-    callback(null, data);
-  };
-  const script = document.createElement("script");
-  script.id = "s_" + name;
-  script.onerror = function() { delete window[name]; script.remove(); callback(new Error("failed")); };
-  script.src = url + "&callback=" + name;
-  document.head.appendChild(script);
-}
+
 
 function initRefNum() {
-  jsonp(SCRIPT_URL + "?action=maxref", function(err, data) {
-    if (!err && data && typeof data.maxRef !== "undefined") {
-      refNum = parseInt(data.maxRef) + 1;
-    } else {
-      refNum = parseInt(localStorage.getItem("masarRefNum") || "1");
-    }
-    localStorage.setItem("masarRefNum", refNum);
-    document.getElementById("refNumDisplay").textContent = refNum;
-  });
-}
-initRefNum();
-
-function saveHandlerName() {
-  const name = document.getElementById("setupName").value.trim();
-  if (!name) { alert("נא להכניס שם"); return; }
-  localStorage.setItem("masarHandler", name);
-  document.getElementById("handlerDisplay").textContent = name;
-  document.getElementById("setupBanner").style.display = "none";
-  if (mode === "new") {
-    document.getElementById("formFields").style.display = "block";
-    document.getElementById("fullFormFields").style.display = "block";
-  }
-}
-
-function showSetup() {
-  document.getElementById("setupBanner").style.display = "block";
-  document.getElementById("setupName").value = localStorage.getItem("masarHandler") || "";
-  document.getElementById("setupName").focus();
-}
-
-function setMode(m) {
-  mode = m;
-  document.getElementById("btn-new").className     = "mode-btn" + (m==="new"     ? " active-new"     : "");
-  document.getElementById("btn-update").className  = "mode-btn" + (m==="update"  ? " active-update"  : "");
-  document.getElementById("btn-release").className = "mode-btn" + (m==="release" ? " active-release" : "");
-
-  document.getElementById("refBadge").style.display       = m==="new" ? "inline-block" : "none";
-  document.getElementById("searchSection").style.display  = m==="update"  ? "block" : "none";
-  document.getElementById("releaseSection").style.display = m==="release" ? "block" : "none";
-  document.getElementById("formFields").style.display     = m==="new" && localStorage.getItem("masarHandler") ? "block" : "none";
-  document.getElementById("fullFormFields").style.display    = "block";
-  document.getElementById("releaseFormFields").style.display = "none";
-  document.getElementById("successBanner").style.display  = "none";
-  document.getElementById("errorBanner").style.display    = "none";
-
-  const btn = document.getElementById("submitBtn");
-  btn.textContent = m==="new" ? "שלח פנייה" : m==="update" ? "שמור עדכון" : "שמור שחרור";
-  btn.className   = "submit-btn" + (m==="release" ? " green" : "");
-
-  clearForm();
-  currentRowIndex = -1;
-
-  if (m==="release") loadReleaseList();
-  if (m==="update") {
-    document.getElementById("searchResults").style.display = "none";
-    document.getElementById("searchInput").value = "";
-  }
-}
-
-function setSearchType(t) {
-  searchType = t;
-  document.getElementById("stype-num").className  = "search-type-btn" + (t==="num"  ? " active" : "");
-  document.getElementById("stype-name").className = "search-type-btn" + (t==="name" ? " active" : "");
-  document.getElementById("searchInput").placeholder = t==="num" ? "הכנס מספר פנייה..." : "הכנס שם...";
-  document.getElementById("searchInput").value = "";
-  document.getElementById("searchResults").style.display = "none";
-}
-
-function doSearch() {
-  const query = document.getElementById("searchInput").value.trim();
-  if (!query) { alert("נא להכניס ערך לחיפוש"); return; }
-  const btn = document.getElementById("searchBtn");
-  btn.textContent = "...מחפש"; btn.disabled = true;
-  fetch(SCRIPT_URL + "?action=search&query=" + encodeURIComponent(query) + "&by=" + searchType)
-    .then(r => r.json())
-    .then(data => { btn.textContent = "🔍 חפש"; btn.disabled = false; showSearchResults(data); })
-    .catch(() => { btn.textContent = "🔍 חפש"; btn.disabled = false; alert("שגיאה בחיפוש"); });
-}
-
-function showSearchResults(data) {
-  const list = document.getElementById("searchResults");
-  list.style.display = "block"; list.innerHTML = "";
-  if (!data.results || data.results.length === 0) {
-    list.innerHTML = '<div class="no-results">לא נמצאו תוצאות</div>'; return;
-  }
-  data.results.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "result-item";
-    div.innerHTML = `<div class="result-name">${item.fullName}</div>
-      <div class="result-meta">פנייה מס׳ ${item.refNum} &nbsp;•&nbsp; ${item.timestamp} &nbsp;•&nbsp; ${item.releaseStatus||"ללא סטטוס"}</div>`;
-    div.onclick = () => loadRecord(item, "update");
-    list.appendChild(div);
-  });
-}
-
-function loadReleaseList() {
-  const list = document.getElementById("releaseResults");
-  list.innerHTML = '<div class="loading-msg">⏳ טוען רשימה...</div>';
-  fetch(SCRIPT_URL + "?action=open")
-    .then(r => r.json())
-    .then(data => {
-      list.innerHTML = "";
-      if (!data.results || data.results.length === 0) {
-        list.innerHTML = '<div class="no-results">✅ אין פניות פתוחות!</div>'; return;
-      }
-      data.results.forEach(item => {
-        const div = document.createElement("div");
-        div.className = "result-item release-item";
-        div.innerHTML = `<div class="result-name">${item.fullName}</div>
-          <div class="result-meta">פנייה מס׳ ${item.refNum} &nbsp;•&nbsp; ${item.timestamp} &nbsp;•&nbsp; ${item.releaseStatus||"ללא סטטוס"}</div>`;
-        div.onclick = () => loadRecord(item, "release");
-        list.appendChild(div);
-      });
-    })
-    .catch(() => { list.innerHTML = '<div class="no-results">שגיאה בטעינה. נסה שוב.</div>'; });
-}
-
-function loadRecord(item, loadMode) {
-  currentRowIndex = item.rowIndex;
-  currentHadReleaseTime = !!item.releaseTime;
-
-  if (loadMode === "update") {
-    document.getElementById("fullFormFields").style.display    = "block";
-    document.getElementById("releaseFormFields").style.display = "none";
-    document.getElementById("fullName").value      = item.fullName      || "";
-    document.getElementById("contactInfo").value   = item.contactInfo   || "";
-    document.getElementById("requestDesc").value   = item.requestDesc   || "";
-    document.getElementById("responseGiven").value = item.responseGiven || "";
-    document.getElementById("notes").value         = item.notes         || "";
-    document.getElementById("refNumDisplay").textContent = item.refNum;
-    const statusMap = { "שגרה":"routine","המשך מעקב":"followup","טיפול מקצועי":"treatment" };
-    const sKey = statusMap[item.releaseStatus];
-    if (sKey) selectStatus(sKey); else clearStatus();
-    document.getElementById("searchResults").style.display = "none";
-  } else {
-    document.getElementById("fullFormFields").style.display    = "none";
-    document.getElementById("releaseFormFields").style.display = "block";
-    document.getElementById("releasePersonName").textContent   = item.fullName + " — פנייה מס׳ " + item.refNum;
-    document.getElementById("releaseNotes").value = "";
-    clearReleaseStatus();
-    document.getElementById("releaseResults").style.display = "none";
-  }
-
-  document.getElementById("formFields").style.display = "block";
-  window.scrollTo(0, document.getElementById("formFields").offsetTop - 20);
-}
-
-function selectStatus(val) {
-  statusVal = val;
-  ["routine","followup","treatment"].forEach(s => {
-    document.getElementById("stat-"+s).className = "status-option" + (s===val ? " "+STATUS_CLASSES[s] : "");
-  });
-}
-function clearStatus() {
-  statusVal = "";
-  ["routine","followup","treatment"].forEach(s => {
-    document.getElementById("stat-"+s).className = "status-option";
-  });
-}
-function selectReleaseStatus(val) {
-  releaseStatusVal = val;
-  ["routine","followup","treatment"].forEach(s => {
-    document.getElementById("rstat-"+s).className = "status-option" + (s===val ? " "+STATUS_CLASSES[s] : "");
-  });
-}
-function clearReleaseStatus() {
-  releaseStatusVal = "";
-  ["routine","followup","treatment"].forEach(s => {
-    document.getElementById("rstat-"+s).className = "status-option";
-  });
-}
-
-function clearForm() {
-  ["fullName","contactInfo","requestDesc","responseGiven","notes","releaseNotes"].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = "";
-  });
-  clearStatus(); clearReleaseStatus();
-}
-
-function resetAfterSubmit() {
-  clearForm();
-  if (mode==="new") {
-    jsonp(SCRIPT_URL + "?action=maxref", function(err, data) {
-      if (!err && data && data.maxRef !== undefined) {
-        refNum = data.maxRef + 1;
-      } else {
-        refNum++;
-      }
-      localStorage.setItem("masarRefNum", refNum);
-      document.getElementById("refNumDisplay").textContent = refNum;
-    });
-  }
+  
   currentRowIndex = -1;
   if (mode !== "new") document.getElementById("formFields").style.display = "none";
   if (mode === "release") {
@@ -548,18 +341,6 @@ function resetAfterSubmit() {
   window.scrollTo(0,0);
 }
 
-document.getElementById("hidden_iframe3").addEventListener("load", function() {
-  if (!submitting) return;
-  submitting = false;
-  const btn = document.getElementById("submitBtn");
-  btn.disabled = false;
-  btn.innerHTML = mode==="new" ? "שלח פנייה" : mode==="update" ? "שמור עדכון" : "שמור שחרור";
-  const msgs = { new:"✅ הפנייה נשלחה בהצלחה!", update:"✅ הפנייה עודכנה בהצלחה!", release:"✅ השחרור נשמר בהצלחה!" };
-  document.getElementById("successBanner").innerHTML = msgs[mode] + "<br><span style='font-size:14px;font-weight:400'>הנתונים עודכנו בגיליון.</span>";
-  document.getElementById("successBanner").style.display = "block";
-  resetAfterSubmit();
-  setTimeout(() => { if (window.opener || window.history.length <= 1) { window.close(); } else { window.location.href = 'index.html'; } }, 2500);
-});
 
 function submitForm() {
   const handler = localStorage.getItem("masarHandler") || "";
@@ -606,19 +387,39 @@ function submitForm() {
   document.getElementById("successBanner").style.display = "none";
   document.getElementById("errorBanner").style.display   = "none";
 
+  // Use fetch for new entries to get ref number back
+  if (mode === "new" || mode === "release") {
+    const fd = new FormData(document.getElementById("hidden_form3"));
+    fetch(SCRIPT_URL, { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(data => {
+        submitting = false;
+        const btn = document.getElementById("submitBtn");
+        btn.disabled = false;
+        btn.textContent = mode==="new" ? "שלח פנייה" : "שמור שחרור";
+        const num = data.refNum ? ' מס׳ ' + data.refNum : '';
+        const msgs = {
+          new: '✅ פנייה' + num + ' נשמרה בהצלחה!<br><span style="font-size:14px;font-weight:400">הנתונים נשמרו בגיליון.</span>',
+          release: '✅ השחרור נשמר בהצלחה!<br><span style="font-size:14px;font-weight:400">הנתונים עודכנו בגיליון.</span>'
+        };
+        document.getElementById("successBanner").innerHTML = msgs[mode];
+        document.getElementById("successBanner").style.display = "block";
+        resetAfterSubmit();
+        setTimeout(() => { if (window.opener || window.history.length <= 1) { window.close(); } else { window.location.href = 'index.html'; } }, 2500);
+      })
+      .catch(() => {
+        submitting = false;
+        const btn = document.getElementById("submitBtn");
+        btn.disabled = false;
+        btn.textContent = mode==="new" ? "שלח פנייה" : "שמור שחרור";
+        document.getElementById("errorBanner").style.display = "block";
+      });
+    return;
+  }
   submitting = true;
   document.getElementById("hidden_form3").submit();
 
-  setTimeout(() => {
-    if (!submitting) return;
-    submitting = false;
-    btn.disabled = false;
-    btn.textContent = mode==="new" ? "שלח פנייה" : mode==="update" ? "שמור עדכון" : "שמור שחרור";
-    document.getElementById("successBanner").innerHTML = "✅ נשלח בהצלחה!";
-    document.getElementById("successBanner").style.display = "block";
-    resetAfterSubmit();
-    setTimeout(() => { if (window.opener || window.history.length <= 1) { window.close(); } else { window.location.href = 'index.html'; } }, 2500);
-  }, 5000);
+  
 }
 </script>
 </body>
