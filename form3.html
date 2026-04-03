@@ -318,7 +318,23 @@ let currentHadReleaseTime = false;
 
 // Always fetch max ref from server on load
 // FIX: init handler name first, then ref num
-const savedHandler = localStorage.getItem("masarHandler");
+const savedHandler = localStorage.getItem("reporterName");
+
+function saveHandlerName() {
+  const name = document.getElementById("setupName").value.trim();
+  if (!name) { alert("נא להכניס שם"); return; }
+  localStorage.setItem("reporterName", name);
+  document.getElementById("handlerDisplay").textContent = name;
+  document.getElementById("setupBanner").style.display = "none";
+  document.getElementById("formFields").style.display  = "block";
+}
+
+function showSetup() {
+  document.getElementById("setupBanner").style.display = "block";
+  document.getElementById("setupName").value = localStorage.getItem("reporterName") || "";
+  document.getElementById("setupName").focus();
+}
+
 if (!savedHandler) {
   document.getElementById("setupBanner").style.display = "block";
   document.getElementById("formFields").style.display  = "none";
@@ -343,7 +359,7 @@ function initRefNum() {
 
 
 function submitForm() {
-  const handler = localStorage.getItem("masarHandler") || "";
+  const handler = localStorage.getItem("reporterName") || "";
   if (!handler) { alert("נא להכניס את שמך תחילה"); showSetup(); return; }
   if ((mode==="update"||mode==="release") && currentRowIndex===-1) {
     alert(mode==="update" ? "נא לחפש ולבחור פנייה לעדכון" : "נא לבחור פנייה לשחרור"); return;
