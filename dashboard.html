@@ -64,7 +64,6 @@
   .refresh-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 13px; font-weight: 600; padding: 8px 16px; cursor: pointer; font-family: inherit; }
   .refresh-btn:active { background: rgba(255,255,255,0.2); }
   .refresh-info { font-size: 12px; color: rgba(255,255,255,0.45); }
-  .countdown { color: rgba(255,255,255,0.7); font-weight: 700; }
 
   .section { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 1rem; }
   .section-title { font-size: 14px; font-weight: 700; color: white; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; }
@@ -144,7 +143,6 @@
     </div>
     <div class="refresh-bar" style="margin-bottom:0">
       <button class="refresh-btn" onclick="loadAll()">🔄 רענן</button>
-      <span class="refresh-info" style="margin-right:12px">עוד <span class="countdown" id="countdown">60</span> שנ׳</span>
     </div>
   </div>
 
@@ -177,12 +175,12 @@
 <script>
 const PIN  = "8594";
 const URLS = {
-  f1: "https://script.google.com/macros/s/AKfycbwZSCFI2uYWq8s1pjVolN9H0FXzrPfd-jvdrueU8VmtA3E3TlHcomqJVHqW3jY0hDPP/exec",
+  f1: "https://script.google.com/macros/s/AKfycbwqFbzT6odHcQ_7UXBBPcUaRMz14_TJiI7zzz-KKwaMi4rmJdRBa5fw-xnT55lFkTRo/exec",
   f2: "https://script.google.com/macros/s/AKfycbycz4KroHwFNmm0FOHqvFNnRZIbcXVFWrUpFaB6O_SQq8F0ievHQ5ElwWLPl0Hi3RkU/exec",
   f3: "https://script.google.com/macros/s/AKfycbzZfzighVoseMxSnJzxtWYgimILjHbABFdViIFHZnpSjg87cHAeSuvqJtzBV-IMxvKHRg/exec"
 };
 
-let pinVal = "", countdownVal = 60, countdownTimer;
+let pinVal = "";
 let charts = {};
 
 // PIN
@@ -202,24 +200,11 @@ function checkPin() {
     document.getElementById("pinScreen").style.display = "none";
     document.getElementById("dashboard").style.display = "block";
     loadAll();
-    startCountdown();
   } else {
     document.getElementById("pinError").style.display = "block";
     pinVal = ""; updateDots();
     setTimeout(() => { document.getElementById("pinError").style.display = "none"; }, 2000);
   }
-}
-
-// Countdown
-function startCountdown() {
-  clearInterval(countdownTimer);
-  countdownVal = 60;
-  document.getElementById("countdown").textContent = countdownVal;
-  countdownTimer = setInterval(() => {
-    countdownVal--;
-    document.getElementById("countdown").textContent = countdownVal;
-    if (countdownVal <= 0) { clearInterval(countdownTimer); loadAll(); startCountdown(); }
-  }, 1000);
 }
 
 // JSONP
