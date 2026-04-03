@@ -229,6 +229,29 @@
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbycz4KroHwFNmm0FOHqvFNnRZIbcXVFWrUpFaB6O_SQq8F0ievHQ5ElwWLPl0Hi3RkU/exec";
 
+
+// Handler name
+const savedHandler = localStorage.getItem("reporterName");
+if (!savedHandler) {
+  document.getElementById("setupBanner").style.display = "block";
+} else {
+  document.getElementById("handlerDisplay").textContent = savedHandler;
+}
+
+function saveHandlerName() {
+  const name = document.getElementById("setupName").value.trim();
+  if (!name) { alert("נא להכניס שם"); return; }
+  localStorage.setItem("reporterName", name);
+  document.getElementById("handlerDisplay").textContent = name;
+  document.getElementById("setupBanner").style.display = "none";
+}
+
+function showSetup() {
+  document.getElementById("setupBanner").style.display = "block";
+  document.getElementById("setupName").value = localStorage.getItem("reporterName") || "";
+  document.getElementById("setupName").focus();
+}
+
 const SEV_LABELS = {
   light: "קל", moderate: "בינוני", severe: "קשה", critical: "קריטי", unknown: "לא ידוע"
 };
@@ -239,13 +262,7 @@ const SEV_CLASSES = {
 
 let severityVal = "";
 let evacVal     = "";
-let injuredNum  = 1;
 
-// Load injured number from localStorage if available
-if (localStorage.getItem("injuredNum")) {
-  injuredNum = parseInt(localStorage.getItem("injuredNum"));
-}
-document.getElementById("injuredNumDisplay").textContent = injuredNum;
 
 function selectSeverity(val) {
   severityVal = val;

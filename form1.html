@@ -81,12 +81,19 @@
   @media (max-width: 380px) {
     .row2, .tenant-inner { grid-template-columns: 1fr; }
   }
+  .setup-banner { background: #fff1f1; border: 1.5px solid #fca5a5; border-radius: 12px; padding: 1rem; margin-bottom: 0.85rem; display: none; }
+  .setup-banner p { display: block; font-size: 14px; font-weight: 500; color: #8B0000; margin-bottom: 8px; }
+  .setup-banner input { display: block; width: 100%; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 12px 14px; font-size: 16px; font-family: inherit; background: white; color: #222; direction: rtl; min-height: 48px; margin-bottom: 8px; box-sizing: border-box; }
+  .setup-banner button { display: block; width: 100%; background: #8B0000; color: white; border: none; border-radius: 10px; padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; min-height: 48px; }
+  .handler-row { display: flex; align-items: center; gap: 10px; }
+  .handler-name-display { flex: 1; border: 1.5px solid #ddd; border-radius: 10px; padding: 12px 14px; font-size: 16px; background: #f0f4f8; color: #222; direction: rtl; min-height: 48px; display: flex; align-items: center; }
+  .change-btn { background: none; border: 1.5px solid #ddd; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: #666; cursor: pointer; font-family: inherit; white-space: nowrap; min-height: 48px; }
 </style>
 </head>
 <body>
 <div class="form-root" dir="rtl">
 
-      <div class="setup-banner" id="setupBanner">
+  <div class="setup-banner" id="setupBanner">
     <p>👋 ברוך הבא! הכנס את שמך כדי שיופיע אוטומטית:</p>
     <input type="text" id="setupName" placeholder="שם מלא">
     <button onclick="saveHandlerName()">שמור והמשך</button>
