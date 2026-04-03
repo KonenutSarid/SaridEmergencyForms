@@ -103,7 +103,7 @@
 <body>
 <div class="form-root" dir="rtl">
 
-      <div class="setup-banner" id="setupBanner">
+  <div class="setup-banner" id="setupBanner">
     <p>👋 ברוך הבא! הכנס את שמך כדי שיופיע אוטומטית:</p>
     <input type="text" id="setupName" placeholder="שם מלא">
     <button onclick="saveHandlerName()">שמור והמשך</button>
@@ -112,12 +112,9 @@
   <div class="form-header">
     <h1>🚑 מיפוי פצועים</h1>
     <p>קיבוץ שריד &nbsp;•&nbsp; טופס חירום</p>
-      </div>
+    </div>
 
-  <div class="success-banner" id="successBanner">
-    ✅ הדיווח נשלח בהצלחה!<br>
-    <span style="font-size:14px;font-weight:400;">הנתונים נשמרו. הטופס מוכן לפצוע הבא.</span>
-  </div>
+  <div class="success-banner" id="successBanner"></div>
   <div class="error-banner" id="errorBanner">
     ❌ שגיאה בשליחה. בדוק חיבור אינטרנט ונסה שוב.
   </div>
@@ -211,20 +208,6 @@
 
 </div>
 
-<!-- Hidden iframe + form for CORS-free submission -->
-<iframe name="hidden_iframe2" id="hidden_iframe2" style="display:none"></iframe>
-<form id="hidden_form2" method="POST" action="https://script.google.com/macros/s/AKfycbycz4KroHwFNmm0FOHqvFNnRZIbcXVFWrUpFaB6O_SQq8F0ievHQ5ElwWLPl0Hi3RkU/exec" target="hidden_iframe2" style="display:none">
-  <input type="hidden" name="timestamp"    id="f_timestamp">
-  <input type="hidden" name="injuredName"  id="f_injuredName">
-  <input type="hidden" name="contactInfo"  id="f_contactInfo">
-  <input type="hidden" name="severity"     id="f_severity">
-  <input type="hidden" name="injuryDesc"   id="f_injuryDesc">
-  <input type="hidden" name="evacStatus"   id="f_evacStatus">
-  <input type="hidden" name="hospital"     id="f_hospital">
-  <input type="hidden" name="evacTime"     id="f_evacTime">
-  <input type="hidden" name="notes"        id="f_notes">
-  <input type="hidden" name="handler"      id="f_handler">
-</form>
 
 <script>
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbycz4KroHwFNmm0FOHqvFNnRZIbcXVFWrUpFaB6O_SQq8F0ievHQ5ElwWLPl0Hi3RkU/exec";
@@ -293,9 +276,6 @@ function resetForm() {
   document.getElementById("evac-yes").className    = "evac-option";
   document.getElementById("evac-no").className     = "evac-option";
   document.getElementById("evacFields").className  = "evac-fields";
-  injuredNum++;
-  localStorage.setItem("injuredNum", injuredNum);
-  document.getElementById("injuredNumDisplay").textContent = injuredNum;
   window.scrollTo(0, 0);
 }
 
@@ -304,19 +284,8 @@ function submitForm() {
   const injuredName = document.getElementById("injuredName").value.trim();
   if (!injuredName) { alert("נא למלא שם פצוע"); return; }
 
-  document.getElementById("f_timestamp").value   = new Date().toLocaleString("he-IL");
-  document.getElementById("f_injuredNum").value  = injuredNum;
-  document.getElementById("f_injuredName").value = injuredName;
-  document.getElementById("f_contactInfo").value = document.getElementById("contactInfo").value.trim();
-  document.getElementById("f_severity").value    = SEV_LABELS[severityVal] || "לא צוין";
-  document.getElementById("f_injuryDesc").value  = document.getElementById("injuryDesc").value.trim();
-  document.getElementById("f_evacStatus").value  = evacVal === "yes" ? "פונה" : evacVal === "no" ? "טרם פונה" : "לא צוין";
-  document.getElementById("f_hospital").value    = document.getElementById("hospital").value.trim();
-  document.getElementById("f_evacTime").value    = document.getElementById("evacTime").value;
-  document.getElementById("f_notes").value       = document.getElementById("notes").value.trim();
-
-  const form = document.getElementById("hidden_form2");
-  form.action = SCRIPT_URL;
+  const handler = localStorage.getItem("reporterName") || "";
+  if (!handler) { alert("נא להכניס את שמך תחילה"); showSetup(); return; }
 
   const btn = document.getElementById("submitBtn");
   btn.disabled = true;
@@ -324,9 +293,36 @@ function submitForm() {
   document.getElementById("successBanner").style.display = "none";
   document.getElementById("errorBanner").style.display   = "none";
 
-  form.submit();
+  const fd = new FormData();
+  fd.append("timestamp",   new Date().toLocaleString("he-IL"));
+  fd.append("injuredName", injuredName);
+  fd.append("contactInfo", document.getElementById("contactInfo").value.trim());
+  fd.append("severity",    SEV_LABELS[severityVal] || "לא צוין");
+  fd.append("injuryDesc",  document.getElementById("injuryDesc").value.trim());
+  fd.append("evacStatus",  evacVal === "yes" ? "פונה" : evacVal === "no" ? "טרם פונה" : "לא צוין");
+  fd.append("hospital",    document.getElementById("hospital").value.trim());
+  fd.append("evacTime",    document.getElementById("evacTime").value);
+  fd.append("notes",       document.getElementById("notes").value.trim());
+  fd.append("handler",     handler);
 
-  }
+  fetch(SCRIPT_URL, { method: "POST", body: fd })
+    .then(r => r.json())
+    .then(data => {
+      const num = data.refNum || "?";
+      document.getElementById("successBanner").innerHTML = "✅ דיווח פצוע מס׳ " + num + " נשמר בהצלחה!<br><span style='font-size:14px;font-weight:400'>תודה רבה.</span>";
+      document.getElementById("successBanner").style.display = "block";
+      document.getElementById("errorBanner").style.display   = "none";
+      btn.disabled = false;
+      btn.innerHTML = "שלח דיווח";
+      resetForm();
+      setTimeout(() => { window.close(); }, 2500);
+    })
+    .catch(() => {
+      document.getElementById("errorBanner").style.display = "block";
+      btn.disabled = false;
+      btn.innerHTML = "שלח דיווח";
+    });
+}
 </script>
 </body>
 </html>
